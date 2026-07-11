@@ -2,9 +2,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 
 from app.core.config import settings
+from app.models import Account, Category, Transaction
 
-# Vamos adicionar os Document models aqui na Fase 2
-DOCUMENT_MODELS: list = []
+DOCUMENT_MODELS:list = [Account, Category, Transaction]
 
 
 async def init_db() -> None:

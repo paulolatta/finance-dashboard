@@ -1,0 +1,22 @@
+from datetime import datetime, timezone
+from enum import Enum
+
+from beanie import Document
+from pydantic import Field
+
+
+class AccountType(str, Enum):
+    CHECKING = "checking"
+    SAVINGS = "savings"
+    CREDIT_CARD = "credit_card"
+    CASH = "cash"
+
+
+class Account(Document):
+    name: str
+    type: AccountType
+    initial_balance: float = 0.0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    class Settings:
+        name = "accounts"
