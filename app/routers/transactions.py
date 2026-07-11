@@ -5,6 +5,18 @@ from app.models.category import Category
 from app.models.transaction import Transaction
 from app.schemas.transaction import TransactionCreate, TransactionRead, TransactionUpdate
 
+import io
+
+import pandas as pd
+from fastapi import File, UploadFile
+
+from app.services.categorization import suggest_category
+from app.schemas.import_transactions import (
+    ImportPreviewItem,
+    ImportConfirmRequest,
+    ImportConfirmItem,
+)
+
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 
 
@@ -100,3 +112,66 @@ async def delete_transaction(transaction_id: str):
     if transaction is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transaction not found")
     await transaction.delete()
+
+@router.post("/import/preview", response_model=list[ImportPreviewItem])
+async def preview_import(file: UploadFile = File(...)):
+    content = await file.read()
+    df = pd.read_csv(io.BytesIO(content))
+
+    required_columns = {"date", "description", "amount", "type"}
+    if not required_columns.issubset(df.columns):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"CSV must contain columns: {', '.join(required_columns)}",
+        )
+
+    preview_items = []
+    for idx, row in df.iterrows():
+        category = await suggest_category(str(row["description"]))
+
+        preview_items.append(
+            ImportPreviewItem(
+                row_index=idx,
+                date=row["date"],
+                description=row["description"],
+                amount=float(row["amount"]),
+                type=row["type"],
+                suggested_category_id=str(category.id) if category else None,
+                suggested_category_name=category.name if category else None,
+            )
+        )
+
+    return preview_items
+
+
+@router.post("/import/confirm", response_model=list[TransactionRead])
+async def confirm_import(payload: ImportConfirmRequest):
+    created_transactions = []
+
+    for item in payload.items:
+        account = await Account.get(item.account_id)
+        if account is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Account not found: {item.account_id}",
+            )
+
+        category = await Category.get(item.category_id)
+        if category is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Category not found: {item.category_id}",
+            )
+
+        transaction = Transaction(
+            description=item.description,
+            amount=item.amount,
+            date=item.date,
+            type=item.type,
+            account=account,
+            category=category,
+        )
+        await transaction.insert()
+        created_transactions.append(transaction)
+
+    return [to_read(t) for t in created_transactions]
