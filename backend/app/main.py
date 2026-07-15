@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import init_db
-from app.routers import health, accounts, categories, transactions, analytics
+from app.routers import health, accounts, categories, transactions, analytics, auth
 
 
 @asynccontextmanager
@@ -28,3 +28,4 @@ app.include_router(accounts.router)
 app.include_router(categories.router)
 app.include_router(transactions.router)
 app.include_router(analytics.router)
+app.include_router(auth.router)

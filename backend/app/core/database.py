@@ -2,9 +2,9 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 
 from app.core.config import settings
-from app.models import Account, Category, Transaction
+from app.models import Account, Category, Transaction, User
 
-DOCUMENT_MODELS:list = [Account, Category, Transaction]
+DOCUMENT_MODELS = [Account, Category, Transaction, User]
 
 
 async def init_db() -> None:

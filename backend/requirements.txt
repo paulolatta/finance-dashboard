@@ -7,3 +7,6 @@ pydantic-settings
 python-dotenv
 pandas
 python-multipart
+passlib[bcrypt]
+python-jose[cryptography]
+email-validator
