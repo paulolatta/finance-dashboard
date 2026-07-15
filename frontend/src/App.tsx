@@ -1,7 +1,7 @@
-import { TransactionsPage } from "./features/transactions/TransactionsPage";
+import { DashboardPage } from "./features/dashboard/DashboardPage";
 
 function App() {
-  return <TransactionsPage />;
+  return <DashboardPage />;
 }
 
 export default App;
