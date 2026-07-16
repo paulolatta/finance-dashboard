@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from enum import Enum
 
-from beanie import Document, Link
+from beanie import Document, Indexed, Link
 from pydantic import Field
+from typing_extensions import Annotated
 
 from app.models.account import Account
 from app.models.category import Category
@@ -21,6 +22,7 @@ class Transaction(Document):
     account: Link[Account]
     category: Link[Category]
     tags: list[str] = []
+    user_id: Annotated[str, Indexed()]
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
@@ -28,4 +30,5 @@ class Transaction(Document):
         indexes = [
             [("account", 1), ("date", -1)],
             [("category", 1), ("date", -1)],
+            [("user_id", 1), ("date", -1)],
         ]

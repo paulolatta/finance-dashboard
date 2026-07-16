@@ -1,11 +1,12 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
+from app.core.deps import get_current_user
 from app.models.account import Account
 from app.models.transaction import Transaction
-from app.schemas.analytics import CategoryTotal, MonthlyEvolution, AccountBalance
-
+from app.models.user import User
+from app.schemas.analytics import AccountBalance, CategoryTotal, MonthlyEvolution
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -14,20 +15,17 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 async def totals_by_category(
     start_date: datetime = Query(...),
     end_date: datetime = Query(...),
+    current_user: User = Depends(get_current_user),
 ):
     pipeline = [
         {
             "$match": {
                 "date": {"$gte": start_date, "$lte": end_date},
                 "type": "expense",
+                "user_id": str(current_user.id),
             }
         },
-        {
-            "$group": {
-                "_id": "$category.$id",
-                "total": {"$sum": "$amount"},
-            }
-        },
+        {"$group": {"_id": "$category.$id", "total": {"$sum": "$amount"}}},
         {
             "$lookup": {
                 "from": "categories",
@@ -57,9 +55,15 @@ async def totals_by_category(
 async def monthly_evolution(
     start_date: datetime = Query(...),
     end_date: datetime = Query(...),
+    current_user: User = Depends(get_current_user),
 ):
     pipeline = [
-        {"$match": {"date": {"$gte": start_date, "$lte": end_date}}},
+        {
+            "$match": {
+                "date": {"$gte": start_date, "$lte": end_date},
+                "user_id": str(current_user.id),
+            }
+        },
         {
             "$group": {
                 "_id": {
@@ -115,26 +119,24 @@ async def monthly_evolution(
     results = await Transaction.get_motor_collection().aggregate(pipeline).to_list(None)
     return results
 
+
 @router.get("/account-balances", response_model=list[AccountBalance])
-async def account_balances():
+async def account_balances(current_user: User = Depends(get_current_user)):
     pipeline = [
+        {"$match": {"user_id": str(current_user.id)}},
         {
             "$group": {
                 "_id": "$account.$id",
-                "income": {
-                    "$sum": {"$cond": [{"$eq": ["$type", "income"]}, "$amount", 0]}
-                },
-                "expense": {
-                    "$sum": {"$cond": [{"$eq": ["$type", "expense"]}, "$amount", 0]}
-                },
+                "income": {"$sum": {"$cond": [{"$eq": ["$type", "income"]}, "$amount", 0]}},
+                "expense": {"$sum": {"$cond": [{"$eq": ["$type", "expense"]}, "$amount", 0]}},
             }
-        }
+        },
     ]
 
     totals_by_account = await Transaction.get_motor_collection().aggregate(pipeline).to_list(None)
     totals_map = {t["_id"]: t["income"] - t["expense"] for t in totals_by_account}
 
-    accounts = await Account.find_all().to_list()
+    accounts = await Account.find(Account.user_id == str(current_user.id)).to_list()
 
     return [
         AccountBalance(

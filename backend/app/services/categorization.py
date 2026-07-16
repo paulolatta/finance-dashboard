@@ -1,6 +1,5 @@
 from app.models.category import Category
 
-# Palavras-chave -> nome da categoria (case-insensitive)
 KEYWORD_RULES: dict[str, str] = {
     "supermercado": "Alimentação",
     "mercado": "Alimentação",
@@ -20,7 +19,7 @@ KEYWORD_RULES: dict[str, str] = {
 }
 
 
-async def suggest_category(description: str) -> Category | None:
+async def suggest_category(description: str, user_id: str) -> Category | None:
     description_lower = description.lower()
 
     matched_category_name = None
@@ -32,4 +31,6 @@ async def suggest_category(description: str) -> Category | None:
     if matched_category_name is None:
         return None
 
-    return await Category.find_one(Category.name == matched_category_name)
+    return await Category.find_one(
+        Category.name == matched_category_name, Category.user_id == user_id
+    )
