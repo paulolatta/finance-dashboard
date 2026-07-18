@@ -2,6 +2,7 @@ import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recha
 import { useFiltersStore } from "../../stores/filtersStore";
 import { useTotalsByCategory } from "./hooks";
 import { Card } from "../../components/ui";
+import type { CategoryTotal } from "./types";
 
 export function CategoryPieChart() {
   const { startDate, endDate } = useFiltersStore();
@@ -32,13 +33,16 @@ export function CategoryPieChart() {
               cx="50%"
               cy="50%"
               outerRadius={90}
-              label={(entry) => `${entry.category_name}: R$ ${entry.total.toFixed(0)}`}
+              label={(props: any) => {
+                const item = props as CategoryTotal;
+                return `${item.category_name}: R$ ${item.total.toFixed(0)}`;
+              }}
             >
               {data.map((entry) => (
                 <Cell key={entry.category_id} fill={entry.category_color} />
               ))}
             </Pie>
-            <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+            <Tooltip formatter={(value: number | string) => `R$ ${Number(value).toFixed(2)}`} />
             <Legend />
           </PieChart>
         </ResponsiveContainer>

@@ -48,7 +48,7 @@ export function MonthlyEvolutionChart() {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
             <XAxis dataKey="label" tick={{ fontSize: 12 }} />
             <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip formatter={(value: number) => `R$ ${value.toFixed(2)}`} />
+            <Tooltip formatter={(value: number | string) => `R$ ${Number(value).toFixed(2)}`} />
             <Legend />
             <Bar dataKey="Receita" fill="var(--color-success)" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Despesa" fill="var(--color-danger)" radius={[4, 4, 0, 0]} />
